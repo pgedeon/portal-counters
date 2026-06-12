@@ -1,0 +1,57 @@
+<resources>
+    <string name="app_name">Portal Counters</string>
+
+    <!-- Game Setup -->
+    <string name="title_game_setup">New Game</string>
+    <string name="label_player_count">Players</string>
+    <string name="label_starting_life">Starting Life</string>
+    <string name="label_game_mode">Game Mode</string>
+    <string name="mode_standard">Standard</string>
+    <string name="mode_commander">Commander</string>
+    <string name="label_player_name">Player %d</string>
+    <string name="hint_player_name">Player %d</string>
+    <string name="label_player_color">Color</string>
+    <string name="btn_start_game">Start Game</string>
+    <string name="btn_custom_life">Custom</string>
+
+    <!-- Game Screen -->
+    <string name="btn_minus_one">−1</string>
+    <string name="btn_minus_five">−5</string>
+    <string name="btn_plus_five">+5</string>
+    <string name="btn_plus_one">+1</string>
+    <string name="label_commander_damage">CMD Dmg</string>
+    <string name="label_poison">☠ %d</string>
+    <string name="label_energy">⚡ %d</string>
+    <string name="label_defeated">DEFEATED</string>
+    <string name="label_winner">%s Wins!</string>
+
+    <!-- Control Bar -->
+    <string name="btn_timer">⏱ %s</string>
+    <string name="btn_dice_d6">🎲 D6</string>
+    <string name="btn_dice_d20">🎲 D20</string>
+    <string name="btn_undo">↩ Undo</string>
+    <string name="btn_new_game">🔄 New</string>
+    <string name="btn_menu">🏠 Menu</string>
+
+    <!-- Dice -->
+    <string name="dice_result">%s rolled: %d</string>
+    <string name="dice_d6">D6</string>
+    <string name="dice_d20">D20</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_confirm_new_game">Start a new game? Current game will be lost.</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+    <string name="dialog_custom_life_title">Set Starting Life</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+
+    <!-- MTG Color names -->
+    <string name="color_white">White</string>
+    <string name="color_blue">Blue</string>
+    <string name="color_black">Black</string>
+    <string name="color_red">Red</string>
+    <string name="color_green">Green</string>
+    <string name="color_colorless">Colorless</string>
+    <string name="color_multi">Multi</string>
+</resources>
