@@ -13,3 +13,10 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Screenshots and temp files
+*.png
+screen-*
+ui-*.xml
+ui.xml
+AGENTS.md
