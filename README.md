@@ -247,7 +247,7 @@ Based on the [Meta Portal Sample App](https://github.com/meta-quest/portal-sampl
 
 ## Acknowledgments
 
-Special thanks to [@facebook](https://github.com/facebook) (Meta) for open-sourcing the [Portal Sample App](https://github.com/meta-quest/portal-sample-app) and enabling MCP (Model Context Protocol) tooling via [hzdb](https://github.com/meta-quest/agentic-tools) for the Portal platform. By providing developer access, documentation, and AI-ready build tooling for discontinued Portal hardware, Meta made it possible to repurpose these devices instead of sending them to the landfill. Portal Counters exists because that door was left open.
+Special thanks to [@facebook](https://github.com/facebook) (Meta) for shipping Portal devices with [developer mode and ADB access](https://developers.meta.com/horizon/documentation/android-apps/portal-development/) built in. Even after discontinuing the Portal hardware line, those devices remain fully programmable Android tablets — no jailbreaking, no exploits, just enable ADB and sideload. That decision saved countless Portal Go units from the landfill. This app exists because that door was left open.
 
 💜 Repurpose > landfill.
 
