@@ -247,7 +247,7 @@ Based on the [Meta Portal Sample App](https://github.com/meta-quest/portal-sampl
 
 ## Acknowledgments
 
-Special thanks to [@facebook](https://github.com/facebook) (Meta) for shipping Portal devices with [developer mode and ADB access](https://developers.meta.com/horizon/documentation/android-apps/portal-development/) built in. Even after discontinuing the Portal hardware line, those devices remain fully programmable Android tablets — no jailbreaking, no exploits, just enable ADB and sideload. That decision saved countless Portal Go units from the landfill. This app exists because that door was left open.
+Special thanks to [@facebook](https://github.com/facebook) (Meta) for [unlocking developer mode and ADB access](https://developers.meta.com/horizon/documentation/android-apps/portal-development/) when the Portal hardware line was discontinued. Instead of bricking the devices, Meta chose to let owners sideload any Android app — turning what would have been e-waste into fully programmable 10-inch Android tablets. That decision saved countless Portal Go units from the landfill. This app exists because that door was left open.
 
 💜 Repurpose > landfill.
 
