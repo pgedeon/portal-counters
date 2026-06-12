@@ -245,6 +245,14 @@ Based on the [Meta Portal Sample App](https://github.com/meta-quest/portal-sampl
 
 ---
 
+## Acknowledgments
+
+Special thanks to [@facebook](https://github.com/facebook) (Meta) for open-sourcing the [Portal Sample App](https://github.com/meta-quest/portal-sample-app) and enabling MCP (Model Context Protocol) tooling via [hzdb](https://github.com/meta-quest/agentic-tools) for the Portal platform. By providing developer access, documentation, and AI-ready build tooling for discontinued Portal hardware, Meta made it possible to repurpose these devices instead of sending them to the landfill. Portal Counters exists because that door was left open.
+
+💜 Repurpose > landfill.
+
+---
+
 <p align="center">
   Made with ⚔ for the <a href="https://magic.wizards.com/en/formats/magic-gathering">Magic: The Gathering</a> community and the <a href="https://developers.meta.com/horizon/documentation/android-apps/portal-development">Meta Portal</a> ecosystem.
 </p>
