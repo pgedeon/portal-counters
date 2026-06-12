@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp
+package com.pgedeon.portalcounters
 
 import android.os.Bundle
 import android.view.WindowManager
@@ -6,13 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
-import com.meta.portal.sampleapp.data.GameRecord
-import com.meta.portal.sampleapp.data.GameStorage
-import com.meta.portal.sampleapp.model.*
-import com.meta.portal.sampleapp.ui.GameScreen
-import com.meta.portal.sampleapp.ui.GameSetupScreen
-import com.meta.portal.sampleapp.ui.theme.MtgColors
-import com.meta.portal.sampleapp.ui.theme.SampleAppTheme
+import com.pgedeon.portalcounters.data.GameRecord
+import com.pgedeon.portalcounters.data.GameStorage
+import com.pgedeon.portalcounters.data.PlayerResult
+import com.pgedeon.portalcounters.model.*
+import com.pgedeon.portalcounters.ui.GameScreen
+import com.pgedeon.portalcounters.ui.GameSetupScreen
+import com.pgedeon.portalcounters.ui.theme.MtgColors
+import com.pgedeon.portalcounters.ui.theme.PortalCountersTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,7 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val storage = GameStorage(this)
         setContent {
-            SampleAppTheme(darkTheme = true) {
+            PortalCountersTheme(darkTheme = true) {
                 PortalCountersApp(storage)
             }
         }
@@ -39,6 +40,33 @@ fun PortalCountersApp(storage: GameStorage) {
 
     // Remember last used player setups so they persist between games
     var lastPlayerSetups by remember { mutableStateOf<List<PlayerSetup>>(emptyList()) }
+
+    /**
+     * Save a completed game to history.
+     * Only saves once per game, and only when the game is actually over.
+     * Called when the user navigates away from the game screen (not on every recomposition).
+     */
+    fun saveCompletedGameIfNeeded(gs: GameState) {
+        if (!gameSaved && gs.gameOver && gs.winner != null) {
+            gameSaved = true
+            val record = GameRecord(
+                id = System.currentTimeMillis(),
+                winnerName = gs.winner!!.name,
+                players = gs.players.map { p ->
+                    PlayerResult(
+                        name = p.name,
+                        life = p.life,
+                        colorIndex = MtgColors.indexOfFirst { it.first == p.color }.coerceAtLeast(0),
+                    )
+                },
+                gameMode = currentGameMode.label,
+                startingLife = currentStartingLife,
+                durationSeconds = gs.elapsedSeconds,
+                timestamp = System.currentTimeMillis(),
+            )
+            storage.saveGame(record)
+        }
+    }
 
     when (screen) {
         "setup" -> {
@@ -74,31 +102,17 @@ fun PortalCountersApp(storage: GameStorage) {
         "game" -> {
             val gs = gameState
             if (gs != null) {
-                if (gs.gameOver && gs.winner != null && !gameSaved) {
-                    gameSaved = true
-                    val record = GameRecord(
-                        id = System.currentTimeMillis(),
-                        winnerName = gs.winner!!.name,
-                        players = gs.players.map { p ->
-                            com.meta.portal.sampleapp.data.PlayerResult(
-                                name = p.name,
-                                life = p.life,
-                                colorIndex = MtgColors.indexOfFirst { it.first == p.color }.coerceAtLeast(0),
-                            )
-                        },
-                        gameMode = currentGameMode.label,
-                        startingLife = currentStartingLife,
-                        durationSeconds = gs.elapsedSeconds,
-                        timestamp = System.currentTimeMillis(),
-                    )
-                    storage.saveGame(record)
-                }
-
                 GameScreen(
                     gameState = gs,
                     gameMode = currentGameMode,
-                    onMenu = { screen = "setup" },
-                    onNewGame = { screen = "setup" },
+                    onMenu = {
+                        saveCompletedGameIfNeeded(gs)
+                        screen = "setup"
+                    },
+                    onNewGame = {
+                        saveCompletedGameIfNeeded(gs)
+                        screen = "setup"
+                    },
                 )
             }
         }

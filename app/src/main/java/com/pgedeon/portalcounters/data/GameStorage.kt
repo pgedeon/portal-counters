@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.data
+package com.pgedeon.portalcounters.data
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -25,6 +25,12 @@ class GameStorage(context: Context) {
 
     private val prefs: SharedPreferences =
         context.getSharedPreferences("portal_counters", Context.MODE_PRIVATE)
+
+    // === Sound Preference ===
+
+    var soundMuted: Boolean
+        get() = prefs.getBoolean("sound_muted", false)
+        set(value) = prefs.edit().putBoolean("sound_muted", value).apply()
 
     // === Player Name Presets ===
 
@@ -55,12 +61,13 @@ class GameStorage(context: Context) {
     }
 
     // === Game History ===
+    // Games are stored newest-first (index 0 = most recent).
 
     fun saveGame(record: GameRecord) {
         val history = getGameHistory().toMutableList()
         history.add(0, record)
-        // Keep last 100 games
-        if (history.size > 100) history.removeAll(history.drop(100))
+        // Keep last 100 games (newest at front)
+        while (history.size > 100) history.removeLast()
         val arr = JSONArray()
         history.forEach { arr.put(recordToJson(it)) }
         prefs.edit().putString("game_history", arr.toString()).apply()

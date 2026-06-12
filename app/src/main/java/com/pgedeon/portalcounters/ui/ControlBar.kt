@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.ui
+package com.pgedeon.portalcounters.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,8 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meta.portal.sampleapp.R
-import com.meta.portal.sampleapp.ui.theme.*
+import com.pgedeon.portalcounters.R
+import com.pgedeon.portalcounters.audio.SoundManager
+import com.pgedeon.portalcounters.ui.theme.*
 import kotlin.random.Random
 
 @Composable
@@ -21,9 +22,11 @@ fun ControlBar(
     canUndo: Boolean,
     onNewGame: () -> Unit,
     onMenu: () -> Unit,
+    soundManager: SoundManager,
     modifier: Modifier = Modifier,
 ) {
     var showDiceDialog by remember { mutableStateOf<DiceType?>(null) }
+    var isMuted by remember { mutableStateOf(soundManager.isMuted) }
 
     Surface(
         color = ControlBarBg,
@@ -85,6 +88,23 @@ fun ControlBar(
                 contentPadding = PaddingValues(horizontal = 12.dp),
             ) {
                 Text(stringResource(R.string.btn_undo), fontSize = 14.sp)
+            }
+
+            // Sound toggle
+            Button(
+                onClick = {
+                    isMuted = !isMuted
+                    soundManager.isMuted = isMuted
+                },
+                modifier = Modifier.height(44.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isMuted) MtgRed.copy(alpha = 0.3f) else ControlBarButton,
+                    contentColor = ContentOnDark,
+                ),
+                shape = RoundedCornerShape(6.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+            ) {
+                Text(if (isMuted) "🔇" else "🔊", fontSize = 14.sp)
             }
 
             // New Game

@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.ui
+package com.pgedeon.portalcounters.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -8,13 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.meta.portal.sampleapp.R
-import com.meta.portal.sampleapp.audio.SoundManager
-import com.meta.portal.sampleapp.model.GameAction
-import com.meta.portal.sampleapp.model.GameMode
-import com.meta.portal.sampleapp.model.GameState
-import com.meta.portal.sampleapp.model.PlayerState
-import com.meta.portal.sampleapp.ui.theme.*
+import com.pgedeon.portalcounters.R
+import com.pgedeon.portalcounters.audio.SoundManager
+import com.pgedeon.portalcounters.model.GameAction
+import com.pgedeon.portalcounters.model.GameMode
+import com.pgedeon.portalcounters.model.GameState
+import com.pgedeon.portalcounters.model.PlayerState
+import com.pgedeon.portalcounters.ui.theme.*
 import kotlinx.coroutines.delay
 
 @Composable
@@ -27,6 +27,12 @@ fun GameScreen(
 ) {
     val context = LocalContext.current
     val soundManager = remember { SoundManager(context) }
+
+    // Release SoundPool when leaving the game screen
+    DisposableEffect(soundManager) {
+        onDispose { soundManager.release() }
+    }
+
     var showNewGameConfirm by remember { mutableStateOf(false) }
     var showWinnerDialog by remember { mutableStateOf(false) }
 
@@ -70,6 +76,7 @@ fun GameScreen(
             canUndo = gameState.actionHistory.isNotEmpty(),
             onNewGame = { showNewGameConfirm = true },
             onMenu = onMenu,
+            soundManager = soundManager,
         )
     }
 

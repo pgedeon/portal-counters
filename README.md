@@ -16,6 +16,7 @@
   <a href="#supported-devices">Supported Devices</a> ·
   <a href="#tech-stack">Tech Stack</a> ·
   <a href="#contributing">Contributing</a> ·
+  <a href="#known-limitations">Known Limitations</a> ·
   <a href="#license">License</a>
 </p>
 
@@ -33,17 +34,22 @@ Portal Counters turns a discontinued Meta Portal Go into a dedicated tabletop co
 - **Life totals** with ±1 and ±5 buttons, animated floating damage/heal numbers
 - **Poison counters** (☠) — game ends at 10 poison
 - **Energy counters** (⚡) — track energy generators
-- **Commander damage** — per-opponent damage breakdown (Commander mode)
-- **Full undo history** — every action can be reversed
+- **Commander damage** — per-opponent damage breakdown (Commander mode); a player dies when they take 21+ damage from a single commander
+- **Full undo history** — every action can be reversed, including lethal actions
+- **Counter clamping** — poison, energy, and commander damage cannot go below 0
 
 ### 🎲 Dice Roller
 - Built-in **D6** and **D20** dice — no more reaching for physical dice
+
+### 🔊 Sound Toggle
+- Mute/unmute sound effects with a toggle button in the control bar
+- Preference persists between sessions
 
 ### 🏆 Stats & Game History
 - **Player leaderboard** — wins, losses, win rate percentage, current streak
 - **Recent form tracker** — W/L pattern for the last 5 games per player
 - **Head-to-head stats** — who beats whom, how often
-- **Game history** — auto-saved with winner, duration, final life totals
+- **Game history** — saved when you leave a completed game (not auto-saved on lethal)
 - **Streak badges** — 🔥 fire emoji for hot streaks (3+ consecutive wins)
 - Last 100 games stored locally on device
 
@@ -51,6 +57,7 @@ Portal Counters turns a discontinued Meta Portal Go into a dedicated tabletop co
 - Name players from a saved roster (dropdown + "Add New")
 - Assign **MTG color identity** — White, Blue, Black, Red, Green, Colorless, or Multi
 - Player setups remembered between games
+- Duplicate name validation prevents stats confusion
 
 ### ✨ Animations & Sound
 - Screen shake on damage
@@ -63,9 +70,9 @@ Portal Counters turns a discontinued Meta Portal Go into a dedicated tabletop co
 - **Landscape-first** layout — 2, 3, or 4 player zones arranged for the 10.1″ screen
 - Opposite players are rendered upside-down so everyone can read their own zone
 - **64dp top reservation** for Portal system overlay
-- **52dp minimum touch targets** — chunky buttons for tabletop use
+- **Minimum 40dp touch targets** on counter buttons — comfortable for tabletop use
 - Dark theme with atmospheric colors — no pure black or white
-- **Inter font** (downloadable via Google Fonts provider) at 18sp body / 140sp life total
+- **Inter font** at 18sp body / 140sp life total
 - **Keep-screen-on** flag — display never sleeps during a game
 
 ### ⏱️ Game Timer
@@ -80,16 +87,16 @@ Portal Counters turns a discontinued Meta Portal Go into a dedicated tabletop co
     <td align="center"><b>2-Player Mid-Game</b></td>
   </tr>
   <tr>
-    <td><img src="screenshots/setup-screen.png" width="400" alt="Portal Counters game setup screen showing player stats dashboard, game mode selection, and player configuration on Meta Portal Go"></td>
-    <td><img src="screenshots/game-2-player.png" width="400" alt="Portal Counters 2-player mid-game with animated life totals, damage numbers, and floating counters on Meta Portal Go"></td>
+    <td><img src="screenshots/setup-screen.png" width="400" alt="Portal Counters game setup screen"></td>
+    <td><img src="screenshots/game-2-player.png" width="400" alt="Portal Counters 2-player mid-game"></td>
   </tr>
   <tr>
     <td align="center"><b>Dice Roller (D6/D20)</b></td>
     <td align="center"><b>4-Player Commander Game</b></td>
   </tr>
   <tr>
-    <td><img src="screenshots/dice-roller.png" width="400" alt="Portal Counters built-in dice roller showing D6 result dialog on Meta Portal Go"></td>
-    <td><img src="screenshots/game-4-player-commander.png" width="400" alt="Portal Counters 4-player Commander game with split-screen player zones, commander damage tracking, and poison counters on Meta Portal Go"></td>
+    <td><img src="screenshots/dice-roller.png" width="400" alt="Portal Counters dice roller"></td>
+    <td><img src="screenshots/game-4-player-commander.png" width="400" alt="Portal Counters 4-player Commander game"></td>
   </tr>
 </table>
 
@@ -107,7 +114,7 @@ Download the latest APK from the [Releases](https://github.com/pgedeon/portal-co
 # Connect via USB-C (port under the rubber cover on Portal Go)
 
 adb install portal-counters.apk
-adb shell am start -n com.meta.portal.sampleapp/.Main
+adb shell am start -n com.pgedeon.portalcounters/.Main
 ```
 
 ### Option 3: Build from source (see below)
@@ -126,7 +133,7 @@ git clone https://github.com/pgedeon/portal-counters.git
 cd portal-counters
 ./gradlew assembleDebug
 adb install app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n com.meta.portal.sampleapp/.Main
+adb shell am start -n com.pgedeon.portalcounters/.Main
 ```
 
 ### Run Tests
@@ -135,6 +142,43 @@ adb shell am start -n com.meta.portal.sampleapp/.Main
 ./gradlew test                    # Unit tests
 ./gradlew connectedAndroidTest   # Instrumented tests (requires device)
 ```
+
+### Build Release APK
+
+Release builds have minification and resource shrinking enabled. To build a signed release APK locally:
+
+1. Create a keystore (if you don't have one):
+   ```bash
+   keytool -genkey -v -keystore release.keystore -alias portal -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. Add signing config to `app/build.gradle.kts` (do NOT commit secrets):
+   ```kotlin
+   android {
+       signingConfigs {
+           create("release") {
+               storeFile = file("release.keystore")
+               storePassword = System.getenv("KEYSTORE_PASSWORD")
+               keyAlias = "portal"
+               keyPassword = System.getenv("KEY_PASSWORD")
+           }
+       }
+       buildTypes {
+           release {
+               signingConfig = signingConfigs.getByName("release")
+           }
+       }
+   }
+   ```
+
+3. Build:
+   ```bash
+   export KEYSTORE_PASSWORD=yourpassword
+   export KEY_PASSWORD=yourpassword
+   ./gradlew assembleRelease
+   ```
+
+The signed APK will be at `app/build/outputs/apk/release/app-release.apk`.
 
 ## Supported Devices
 
@@ -159,60 +203,43 @@ Portal Counters targets the **Meta Portal Go** (10.1″ touchscreen, landscape, 
 | State Management | Compose mutable state + sealed class actions with undo history |
 | Persistence | `SharedPreferences` with JSON serialization |
 | Audio | `SoundPool` for low-latency SFX |
-| Build | Gradle 9.4.1, AGP 9.2.1, Kotlin 2.2.10 |
+| Build | Gradle (AGP), Kotlin Compose plugin |
 | Min SDK | 24 (Android 7.0) |
 | Target SDK | 29 (Android 10 — Portal hardware) |
-| Font | Inter via XML downloadable fonts (Google Fonts provider) |
+| Font | Inter via XML bundled fonts |
 | Animations | Compose Animatable, spring physics, keyframe sequences |
 
 ## Project Structure
 
 ```
-app/src/main/java/com/meta/portal/sampleapp/
-├── MainActivity.kt              # Entry point, navigation between setup & game screens
+app/src/main/java/com/pgedeon/portalcounters/
+├── MainActivity.kt              # Entry point, navigation, deferred game saving
 ├── audio/
-│   └── SoundManager.kt          # SoundPool-based SFX (5 damage + 5 heal sounds)
+│   └── SoundManager.kt          # SoundPool-based SFX with mute support
 ├── data/
-│   └── GameStorage.kt           # SharedPreferences persistence: game history, player names, win stats
+│   └── GameStorage.kt           # SharedPreferences: game history, player names, sound pref
 ├── model/
-│   └── GameState.kt             # Game state engine: players, actions, undo, game-over detection
+│   └── GameState.kt             # Game state: players, actions, undo, death detection, counter clamping
 └── ui/
-    ├── ControlBar.kt            # Bottom bar: timer, D6/D20 dice, undo, new game, menu
-    ├── GameScreen.kt            # Active game layout (2/3/4 player arrangements)
-    ├── GameSetupScreen.kt       # Pre-game: player count, mode, life, names, colors, stats dashboard
-    ├── PlayerZone.kt            # Individual player zone: life display, buttons, counters, animations
+    ├── ControlBar.kt            # Bottom bar: timer, dice, undo, sound toggle, new game, menu
+    ├── GameScreen.kt            # Active game layout with SoundPool lifecycle management
+    ├── GameSetupScreen.kt       # Pre-game: config, validation, stats dashboard
+    ├── PlayerZone.kt            # Player zone: life, buttons, counters with 40dp touch targets
     └── theme/
-        ├── Color.kt             # MTG color palette, dark theme tokens, button accents
-        ├── Theme.kt             # Material 3 theme (dark mode forced)
+        ├── Color.kt             # MTG color palette, dark theme tokens
+        ├── Theme.kt             # Material 3 theme
         └── Type.kt              # Inter font family + 140sp life total style
 ```
 
-## Architecture Overview
+## Known Limitations
 
-```
-┌─────────────────────────────────────────────┐
-│                  MainActivity                │
-│  ┌─────────────┐      ┌──────────────────┐  │
-│  │ SetupScreen  │ ──▶  │    GameScreen     │  │
-│  │              │      │                   │  │
-│  │ • Players    │      │  ┌─────────────┐  │  │
-│  │ • Mode       │      │  │  PlayerZone  │  │  │
-│  │ • Life       │      │  │  (×2/3/4)   │  │  │
-│  │ • Colors     │      │  └─────────────┘  │  │
-│  │ • Stats      │      │                   │  │
-│  └─────────────┘      │  ┌─────────────┐  │  │
-│                        │  │  ControlBar  │  │  │
-│                        │  │ Timer|Dice|  │  │  │
-│                        │  │ Undo|Menu   │  │  │
-│                        │  └─────────────┘  │  │
-│                        └──────────────────┘  │
-└─────────────────────────────────────────────┘
-         │                    │
-    GameStorage           GameState
-    (persistence)    (actions + undo history)
-```
-
-**State flow:** UI events → `GameAction` sealed class → `GameState.applyAction()` → undo history updated → winner detection triggered → `GameStorage.saveGame()` on game over.
+- **No Planeswalker loyalty counters** — not yet implemented.
+- **No custom counter types** — energy is tracked but arbitrary counters are not supported.
+- **Portal TV D-pad support** — the app requires touch input; D-pad/remote control navigation is not implemented.
+- **No data export** — game history cannot be exported as CSV/JSON.
+- **Stats keyed by player name** — changing a player's name creates a separate stats entry. Duplicate names in the same game are blocked at setup.
+- **SoundPool resource** — SoundPool is created per game screen session. While it's released via `DisposableEffect` when leaving the game, rapid screen switching could cause brief audio glitches.
+- **No Material You** — dynamic color is disabled to maintain consistent dark theme on Portal hardware.
 
 ## Roadmap
 
@@ -252,7 +279,7 @@ The counter system (life, poison, energy, commander damage) is designed for Magi
 Meta Portal devices run Android 10 (SDK 29). Targeting this SDK ensures maximum compatibility with Portal hardware.
 
 ### The sounds aren't playing?
-The app uses `SoundPool` which should work on all Android devices. If sounds fail, check that the `raw/` resources were included in your build.
+Check that the 🔊 sound toggle in the control bar is not muted. The app uses `SoundPool` which should work on all Android devices.
 
 ## License
 

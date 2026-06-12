@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.ui.theme
+package com.pgedeon.portalcounters.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.meta.portal.sampleapp.R
+import com.pgedeon.portalcounters.R
 
 private val InterFontFamily =
     FontFamily(

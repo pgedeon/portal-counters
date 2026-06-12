@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.ui.theme
+package com.pgedeon.portalcounters.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

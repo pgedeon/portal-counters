@@ -1,6 +1,6 @@
-package com.meta.portal.sampleapp.ui
+package com.pgedeon.portalcounters.ui
 
-import com.meta.portal.sampleapp.audio.SoundManager
+import com.pgedeon.portalcounters.audio.SoundManager
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -24,12 +24,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meta.portal.sampleapp.R
-import com.meta.portal.sampleapp.model.GameAction
-import com.meta.portal.sampleapp.model.GameMode
-import com.meta.portal.sampleapp.model.GameState
-import com.meta.portal.sampleapp.model.PlayerState
-import com.meta.portal.sampleapp.ui.theme.*
+import com.pgedeon.portalcounters.R
+import com.pgedeon.portalcounters.model.GameAction
+import com.pgedeon.portalcounters.model.GameMode
+import com.pgedeon.portalcounters.model.GameState
+import com.pgedeon.portalcounters.model.PlayerState
+import com.pgedeon.portalcounters.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -69,7 +69,7 @@ fun PlayerZone(
     playerIndex: Int,
     player: PlayerState,
     allPlayers: List<PlayerState>,
-    gameMode: com.meta.portal.sampleapp.model.GameMode,
+    gameMode: com.pgedeon.portalcounters.model.GameMode,
     isInverted: Boolean,
     onLifeChange: (Int, Int) -> Unit,
     soundManager: SoundManager,
@@ -86,7 +86,6 @@ fun PlayerZone(
     var prevLife by remember { mutableIntStateOf(lifeNow) }
     val lastDeltaColor = remember { mutableStateOf(MtgRed) }
 
-    // Animatable for re-triggerable one-shot animations
     val shakeX = remember { Animatable(0f) }
     val shakeY = remember { Animatable(0f) }
     val scalePulse = remember { Animatable(1f) }
@@ -99,20 +98,17 @@ fun PlayerZone(
             val delta = lifeNow - prevLife
             val isDamage = delta < 0
 
-            // Play sound effect
             if (isDamage) soundManager.playDamage() else soundManager.playHeal()
 
             lastDeltaColor.value = if (isDamage) MtgRed else MtgGreen
             flashColor = if (isDamage) MtgRed.copy(alpha = 0.5f) else MtgGreen.copy(alpha = 0.35f)
             prevLife = lifeNow
 
-            // Scale bounce: snap big then spring back
             scalePulse.snapTo(1.35f)
             launch {
                 scalePulse.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium))
             }
 
-            // Screen shake on damage only
             if (isDamage) {
                 launch {
                     val a = 14f
@@ -126,7 +122,6 @@ fun PlayerZone(
                 }
             }
 
-            // Flash overlay
             flashAlpha.snapTo(1f)
             launch {
                 flashAlpha.animateTo(0f, tween(700, easing = FastOutSlowInEasing))
@@ -143,7 +138,6 @@ fun PlayerZone(
         animationSpec = tween(400), label = "lifeColor",
     )
 
-    // Floating text particles
     val floatingTexts = remember { mutableStateListOf<FloatingText>() }
     var floatId by remember { mutableIntStateOf(0) }
 
@@ -159,7 +153,6 @@ fun PlayerZone(
             .fillMaxSize()
             .background(SurfaceDark)
             .graphicsLayer { translationX = shakeX.value; translationY = shakeY.value }
-            // no dimming — negative life allowed,
     ) {
         // Flash overlay
         if (flashAlpha.value > 0.01f) {
@@ -174,7 +167,6 @@ fun PlayerZone(
 
         // GIANT LIFE COUNTER
         Box(modifier = Modifier.align(Alignment.Center), contentAlignment = Alignment.Center) {
-            // Glow behind number
             val glowStrength = ((scalePulse.value - 1f) * 3f).coerceIn(0f, 1f)
             if (glowStrength > 0.01f) {
                 Box(modifier = Modifier.size(200.dp).graphicsLayer {
@@ -257,14 +249,12 @@ fun PlayerZone(
                     onEnergyPlus = { onEnergyChange(playerIndex, 1) }, onEnergyMinus = { onEnergyChange(playerIndex, -1) },
                     enabled = true,
                 )
-                if (gameMode == com.meta.portal.sampleapp.model.GameMode.COMMANDER) {
+                if (gameMode == com.pgedeon.portalcounters.model.GameMode.COMMANDER) {
                     Spacer(modifier = Modifier.height(4.dp))
                     CommanderDamageRow(playerIndex, player, allPlayers, onCommanderDamageChange, !isDead)
                 }
             }
         }
-
-
     }
 }
 
@@ -336,11 +326,12 @@ private fun CommanderDamageRow(
     val others = allPlayers.filterIndexed { idx, _ -> idx != playerIndex }
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
         others.forEach { other ->
-            val dmg = player.commanderDamage.getOrDefault(allPlayers.indexOf(other), 0)
-            Surface(modifier = Modifier.weight(1f).height(40.dp), shape = RoundedCornerShape(6.dp),
+            val otherIdx = allPlayers.indexOf(other)
+            val dmg = player.commanderDamage.getOrDefault(otherIdx, 0)
+            Surface(modifier = Modifier.weight(1f).height(44.dp), shape = RoundedCornerShape(6.dp),
                 color = SurfaceMid, border = BorderStroke(1.dp, other.color)) {
                 Row(modifier = Modifier.fillMaxSize().clickable(enabled = enabled) {
-                    onCommanderDamageChange(playerIndex, allPlayers.indexOf(other), 1)
+                    onCommanderDamageChange(playerIndex, otherIdx, 1)
                 }, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.size(10.dp).background(other.color, CircleShape))
                     Spacer(modifier = Modifier.width(4.dp))
@@ -351,32 +342,82 @@ private fun CommanderDamageRow(
     }
 }
 
+/**
+ * Small counter button with a minimum 40dp touch target.
+ */
+@Composable
+private fun CounterButton(
+    text: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = { if (enabled) onClick() },
+        enabled = enabled,
+        modifier = modifier.size(40.dp),
+        shape = RoundedCornerShape(6.dp),
+        color = SurfaceMid,
+        contentColor = color,
+    ) {
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+            Text(text, fontSize = 20.sp, color = color, textAlign = TextAlign.Center)
+        }
+    }
+}
+
 @Composable
 private fun CountersRow(
     poison: Int, energy: Int,
     onPoisonPlus: () -> Unit, onPoisonMinus: () -> Unit,
     onEnergyPlus: () -> Unit, onEnergyMinus: () -> Unit, enabled: Boolean,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Surface(modifier = Modifier.height(36.dp), shape = RoundedCornerShape(6.dp),
-            color = if (poison > 0) MtgGreen.copy(alpha = 0.25f) else SurfaceMid) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text("☠", fontSize = 16.sp, color = MtgGreen); Spacer(modifier = Modifier.width(4.dp))
-                Text("$poison", fontSize = 16.sp, color = ContentOnDark); Spacer(modifier = Modifier.width(4.dp))
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Poison counter
+        Surface(
+            modifier = Modifier.height(40.dp),
+            shape = RoundedCornerShape(6.dp),
+            color = if (poison > 0) MtgGreen.copy(alpha = 0.25f) else SurfaceMid,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
+                Text("☠", fontSize = 16.sp, color = MtgGreen)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("$poison", fontSize = 16.sp, color = ContentOnDark)
                 if (enabled) {
-                    Text("+", fontSize = 16.sp, color = MetaBlue, modifier = Modifier.clickable { onPoisonPlus() }.padding(horizontal = 4.dp))
-                    Text("−", fontSize = 16.sp, color = MtgRed, modifier = Modifier.clickable { onPoisonMinus() }.padding(horizontal = 4.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    CounterButton("+", onPoisonPlus, enabled, MetaBlue)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    CounterButton("−", onPoisonMinus, enabled && poison > 0, MtgRed)
                 }
             }
         }
-        Surface(modifier = Modifier.height(36.dp), shape = RoundedCornerShape(6.dp),
-            color = if (energy > 0) MtgBlue.copy(alpha = 0.25f) else SurfaceMid) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp)) {
-                Text("⚡", fontSize = 16.sp, color = MtgBlue); Spacer(modifier = Modifier.width(4.dp))
-                Text("$energy", fontSize = 16.sp, color = ContentOnDark); Spacer(modifier = Modifier.width(4.dp))
+
+        // Energy counter
+        Surface(
+            modifier = Modifier.height(40.dp),
+            shape = RoundedCornerShape(6.dp),
+            color = if (energy > 0) MtgBlue.copy(alpha = 0.25f) else SurfaceMid,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            ) {
+                Text("⚡", fontSize = 16.sp, color = MtgBlue)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("$energy", fontSize = 16.sp, color = ContentOnDark)
                 if (enabled) {
-                    Text("+", fontSize = 16.sp, color = MetaBlue, modifier = Modifier.clickable { onEnergyPlus() }.padding(horizontal = 4.dp))
-                    Text("−", fontSize = 16.sp, color = MtgRed, modifier = Modifier.clickable { onEnergyMinus() }.padding(horizontal = 4.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    CounterButton("+", onEnergyPlus, enabled, MetaBlue)
+                    Spacer(modifier = Modifier.width(2.dp))
+                    CounterButton("−", onEnergyMinus, enabled && energy > 0, MtgRed)
                 }
             }
         }

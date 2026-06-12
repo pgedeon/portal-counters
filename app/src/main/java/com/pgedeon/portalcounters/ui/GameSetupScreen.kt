@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.ui
+package com.pgedeon.portalcounters.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -15,11 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.meta.portal.sampleapp.data.GameRecord
-import com.meta.portal.sampleapp.data.GameStorage
-import com.meta.portal.sampleapp.model.GameMode
-import com.meta.portal.sampleapp.model.PlayerSetup
-import com.meta.portal.sampleapp.ui.theme.*
+import com.pgedeon.portalcounters.data.GameRecord
+import com.pgedeon.portalcounters.data.GameStorage
+import com.pgedeon.portalcounters.model.GameMode
+import com.pgedeon.portalcounters.model.PlayerSetup
+import com.pgedeon.portalcounters.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -33,7 +33,7 @@ data class PlayerStats(
     val currentStreak: Int,       // positive = win streak, negative = loss streak
     val bestStreak: Int,
     val avgWinnerLife: Float,      // avg remaining life when they won
-    val recentForm: String,        // "W W L W L" last 5
+    val recentForm: String,        // "W W L W L" last 5 (oldest→newest, newest on right)
 )
 
 data class DashboardStats(
@@ -47,6 +47,10 @@ data class DashboardStats(
     val shortestGame: Int,
 )
 
+/**
+ * Compute stats from game history.
+ * Games are expected in newest-first order (index 0 = most recent).
+ */
 fun computeStats(games: List<GameRecord>): DashboardStats {
     val total = games.size
     val standard = games.count { it.gameMode == "Standard" }
@@ -66,7 +70,8 @@ fun computeStats(games: List<GameRecord>): DashboardStats {
     val winLifeTotals = mutableMapOf<String, MutableList<Int>>()
     val h2h = mutableMapOf<Pair<String, String>, Int>()
 
-    // Track streaks — ordered by time
+    // Track per-player results in game order (newest first).
+    // Index 0 = most recent game for that player.
     val playerGames = mutableMapOf<String, MutableList<Boolean>>() // true=win
 
     games.forEach { game ->
@@ -86,20 +91,21 @@ fun computeStats(games: List<GameRecord>): DashboardStats {
     val playerStats = allNames.map { name ->
         val wins = winsPerPlayer[name] ?: 0
         val losses = lossesPerPlayer[name] ?: 0
+        // Results list: index 0 = newest game
         val results = playerGames[name] ?: emptyList()
 
-        // Current streak
+        // Current streak: count consecutive same-result from the MOST RECENT end (index 0).
         var currentStreak = 0
         if (results.isNotEmpty()) {
-            val last = results.last()
-            currentStreak = if (last) {
-                results.takeLastWhile { it }.size
+            val first = results.first() // most recent result
+            currentStreak = if (first) {
+                results.takeWhile { it }.size
             } else {
-                -results.takeLastWhile { !it }.size
+                -results.takeWhile { !it }.size
             }
         }
 
-        // Best win streak
+        // Best win streak across all games
         var bestStreak = 0
         var run = 0
         for (r in results) {
@@ -108,8 +114,9 @@ fun computeStats(games: List<GameRecord>): DashboardStats {
 
         val avgLife = winLifeTotals[name]?.average()?.toFloat() ?: 0f
 
-        // Recent form (last 5)
-        val recent = results.takeLast(5).map { if (it) "W" else "L" }.reversed()
+        // Recent form: last 5 games, displayed oldest→newest (newest on right).
+        // results.take(5) gets the 5 newest. Reversed to show oldest-first.
+        val recent = results.take(5).reversed().map { if (it) "W" else "L" }
 
         PlayerStats(
             name = name,
@@ -151,7 +158,9 @@ fun GameSetupScreen(
     var startingLife by remember { mutableStateOf(lastStartingLife) }
     var showCustomLifeDialog by remember { mutableStateOf(false) }
     var customLifeInput by remember { mutableStateOf("40") }
+    var customLifeError by remember { mutableStateOf("") }
     var savedNames by remember { mutableStateOf(gameStorage.getPlayerNames()) }
+    var validationError by remember { mutableStateOf("") }
 
     // Pre-fill from last game
     val playerSetups = remember(lastSetups) {
@@ -215,7 +224,7 @@ fun GameSetupScreen(
                     Button(onClick = { startingLife = life }, modifier = Modifier.height(48.dp),
                         colors = btnColors(startingLife == life), shape = RoundedCornerShape(8.dp)) { Text("$life", fontSize = 18.sp) }
                 }
-                Button(onClick = { showCustomLifeDialog = true }, modifier = Modifier.height(48.dp),
+                Button(onClick = { showCustomLifeDialog = true; customLifeError = "" }, modifier = Modifier.height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = SurfaceMid, contentColor = ContentOnDark),
                     shape = RoundedCornerShape(8.dp)) { Text("Custom", fontSize = 14.sp) }
             }
@@ -231,6 +240,11 @@ fun GameSetupScreen(
             )
         }
 
+        // Validation error message
+        if (validationError.isNotEmpty()) {
+            Text(validationError, color = MtgRed, fontSize = 14.sp, textAlign = TextAlign.Center)
+        }
+
         Spacer(modifier = Modifier.height(6.dp))
 
         Button(
@@ -238,6 +252,14 @@ fun GameSetupScreen(
                 val setups = (0 until playerCount).map { i ->
                     playerSetups[i].copy(name = playerSetups[i].name.ifBlank { "Player ${i + 1}" })
                 }
+                // Validate: check for duplicate names
+                val names = setups.map { it.name }
+                val duplicates = names.groupingBy { it }.eachCount().filter { it.value > 1 }.keys
+                if (duplicates.isNotEmpty()) {
+                    validationError = "Duplicate names: ${duplicates.joinToString()}. Please use unique names."
+                    return@Button
+                }
+                validationError = ""
                 onStartGame(playerCount, startingLife, gameMode, setups)
             },
             modifier = Modifier.height(56.dp).width(260.dp),
@@ -250,12 +272,33 @@ fun GameSetupScreen(
         AlertDialog(containerColor = SurfaceDark, onDismissRequest = { showCustomLifeDialog = false },
             title = { Text("Set Starting Life", color = ContentOnDark) },
             text = {
-                OutlinedTextField(value = customLifeInput, onValueChange = { customLifeInput = it }, singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = ContentOnDark, unfocusedTextColor = ContentOnDark,
-                        focusedContainerColor = SurfaceMid, unfocusedContainerColor = SurfaceMid))
+                Column {
+                    OutlinedTextField(value = customLifeInput, onValueChange = {
+                        customLifeInput = it
+                        customLifeError = ""
+                    }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = ContentOnDark, unfocusedTextColor = ContentOnDark,
+                            focusedContainerColor = SurfaceMid, unfocusedContainerColor = SurfaceMid))
+                    if (customLifeError.isNotEmpty()) {
+                        Text(customLifeError, color = MtgRed, fontSize = 12.sp)
+                    }
+                }
             },
-            confirmButton = { TextButton(onClick = { customLifeInput.toIntOrNull()?.let { startingLife = it }; showCustomLifeDialog = false }) { Text("OK", color = MetaBlue) } },
+            confirmButton = {
+                TextButton(onClick = {
+                    val value = customLifeInput.toIntOrNull()
+                    when {
+                        value == null -> customLifeError = "Enter a valid number."
+                        value < 1 -> customLifeError = "Starting life must be at least 1."
+                        value > 999 -> customLifeError = "Starting life cannot exceed 999."
+                        else -> {
+                            startingLife = value
+                            showCustomLifeDialog = false
+                        }
+                    }
+                }) { Text("OK", color = MetaBlue) }
+            },
             dismissButton = { TextButton(onClick = { showCustomLifeDialog = false }) { Text("Cancel", color = ContentOnDark) } },
         )
     }
@@ -290,7 +333,7 @@ private fun StatsDashboard(stats: DashboardStats, recentGames: List<GameRecord>)
                 StatChip("⏱ ${avgMin}:${String.format("%02d", avgSec)}", "avg", Modifier.weight(1f))
             }
 
-            // === COMPACT LEADERBOARD — one line per player ===
+            // === COMPACT LEADERBOARD ===
             if (stats.playerStats.isNotEmpty()) {
                 stats.playerStats.forEach { ps ->
                     Row(
@@ -299,10 +342,8 @@ private fun StatsDashboard(stats: DashboardStats, recentGames: List<GameRecord>)
                             .background(SurfaceMid, RoundedCornerShape(5.dp))
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                     ) {
-                        // Name
                         Text(ps.name, fontSize = 16.sp, color = ContentOnDark, fontWeight = FontWeight.Medium,
                             maxLines = 1, modifier = Modifier.width(90.dp))
-                        // Streak badge (compact)
                         when {
                             ps.currentStreak >= 3 -> Text("🔥${ps.currentStreak} ", fontSize = 14.sp, color = MtgGreen)
                             ps.currentStreak >= 1 -> Text("↑${ps.currentStreak} ", fontSize = 13.sp, color = MtgGreen)
@@ -310,8 +351,6 @@ private fun StatsDashboard(stats: DashboardStats, recentGames: List<GameRecord>)
                             else -> {}
                         }
                         Spacer(modifier = Modifier.weight(1f))
-                        // Stats right-aligned
-                        // Colored W/L form
                         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             ps.recentForm.split(" ").forEach { ch ->
                                 if (ch == "W") Text("W", fontSize = 13.sp, color = MtgGreen, fontWeight = FontWeight.Bold)
@@ -326,7 +365,7 @@ private fun StatsDashboard(stats: DashboardStats, recentGames: List<GameRecord>)
                 }
             }
 
-            // === COMPACT LAST 2 GAMES (merged with rivalries as a single row) ===
+            // === COMPACT LAST 2 GAMES ===
             if (recentGames.isNotEmpty()) {
                 recentGames.forEach { game ->
                     val time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(game.timestamp))
@@ -340,7 +379,7 @@ private fun StatsDashboard(stats: DashboardStats, recentGames: List<GameRecord>)
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                     ) {
                         Text("🏆 ${game.winnerName}", fontSize = 16.sp, color = MtgGreen, fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text("♥${lifeDiff}", fontSize = 14.sp, color = ContentOnDark.copy(alpha = 0.5f))
+                        Text("♥$lifeDiff", fontSize = 14.sp, color = ContentOnDark.copy(alpha = 0.5f))
                         Text("${game.gameMode} • ${dur} • ${time}", fontSize = 14.sp, color = ContentOnDark.copy(alpha = 0.35f))
                     }
                 }
@@ -378,6 +417,7 @@ private fun PlayerNameRow(
     var expanded by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
     var newNameInput by remember { mutableStateOf("") }
+    var newNameError by remember { mutableStateOf("") }
     val allOptions = savedNames + listOf("+ Add New…")
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -417,22 +457,39 @@ private fun PlayerNameRow(
     }
 
     if (showAddDialog) {
-        AlertDialog(containerColor = SurfaceDark, onDismissRequest = { showAddDialog = false; newNameInput = "" },
+        AlertDialog(containerColor = SurfaceDark, onDismissRequest = { showAddDialog = false; newNameInput = ""; newNameError = "" },
             title = { Text("Add Player Name", color = ContentOnDark) },
             text = {
-                OutlinedTextField(value = newNameInput, onValueChange = { newNameInput = it }, singleLine = true,
-                    placeholder = { Text("Enter name", color = ContentOnDark.copy(alpha = 0.5f)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = ContentOnDark, unfocusedTextColor = ContentOnDark,
-                        focusedContainerColor = SurfaceMid, unfocusedContainerColor = SurfaceMid))
+                Column {
+                    OutlinedTextField(value = newNameInput, onValueChange = {
+                        newNameInput = it
+                        newNameError = ""
+                    }, singleLine = true,
+                        placeholder = { Text("Enter name", color = ContentOnDark.copy(alpha = 0.5f)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = ContentOnDark, unfocusedTextColor = ContentOnDark,
+                            focusedContainerColor = SurfaceMid, unfocusedContainerColor = SurfaceMid))
+                    if (newNameError.isNotEmpty()) {
+                        Text(newNameError, color = MtgRed, fontSize = 12.sp)
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (newNameInput.isNotBlank()) { onAddName(newNameInput.trim()); onSetupChange(setup.copy(name = newNameInput.trim())) }
-                    showAddDialog = false; newNameInput = ""
+                    val trimmed = newNameInput.trim()
+                    when {
+                        trimmed.isBlank() -> newNameError = "Name cannot be empty."
+                        else -> {
+                            onAddName(trimmed)
+                            onSetupChange(setup.copy(name = trimmed))
+                            showAddDialog = false
+                            newNameInput = ""
+                            newNameError = ""
+                        }
+                    }
                 }) { Text("Add", color = MetaBlue) }
             },
-            dismissButton = { TextButton(onClick = { showAddDialog = false; newNameInput = "" }) { Text("Cancel", color = ContentOnDark) } },
+            dismissButton = { TextButton(onClick = { showAddDialog = false; newNameInput = ""; newNameError = "" }) { Text("Cancel", color = ContentOnDark) } },
         )
     }
 }

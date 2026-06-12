@@ -1,11 +1,12 @@
-package com.meta.portal.sampleapp.audio
+package com.pgedeon.portalcounters.audio
 
 import android.content.Context
 import android.media.SoundPool
-import androidx.annotation.RawRes
-import com.meta.portal.sampleapp.R
+import com.pgedeon.portalcounters.data.GameStorage
 
 class SoundManager(context: Context) {
+
+    private val storage = GameStorage(context)
 
     private val soundPool = SoundPool.Builder()
         .setMaxStreams(3)
@@ -13,6 +14,10 @@ class SoundManager(context: Context) {
 
     private val damageSounds: List<Int>
     private val healSounds: List<Int>
+
+    var isMuted: Boolean
+        get() = storage.soundMuted
+        set(value) { storage.soundMuted = value }
 
     init {
         val res = context.resources
@@ -39,13 +44,13 @@ class SoundManager(context: Context) {
     }
 
     fun playDamage() {
-        if (damageSounds.isEmpty()) return
+        if (isMuted || damageSounds.isEmpty()) return
         val id = damageSounds.random()
         soundPool.play(id, 0.7f, 0.7f, 1, 0, 1.0f)
     }
 
     fun playHeal() {
-        if (healSounds.isEmpty()) return
+        if (isMuted || healSounds.isEmpty()) return
         val id = healSounds.random()
         soundPool.play(id, 0.6f, 0.6f, 1, 0, 1.0f)
     }

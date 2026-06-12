@@ -1,4 +1,4 @@
-package com.meta.portal.sampleapp.model
+package com.pgedeon.portalcounters.model
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
@@ -28,15 +28,42 @@ class PlayerState(
     var energyCounters by mutableStateOf(0)
         private set
 
-    // Dead = life <= 0 OR poison >= 10 (for game end detection)
-    val isDead: Boolean get() = life <= 0 || poisonCounters >= 10
+    /** Dead if life <= 0, poison >= 10, or any single commander damage >= 21. */
+    val isDead: Boolean get() = life <= 0 || poisonCounters >= 10 ||
+            commanderDamage.values.any { it >= 21 }
 
+    /** Change life by delta. Life may go below 0 (MTG allows negative life). */
     fun changeLife(delta: Int) { life += delta }
-    fun changePoison(delta: Int) { poisonCounters += delta }
-    fun changeEnergy(delta: Int) { energyCounters += delta }
-    fun changeCommanderDamage(fromPlayerIndex: Int, delta: Int) {
+
+    /**
+     * Change poison by delta, clamped to >= 0.
+     * @return the effective delta applied (may differ from requested if clamped).
+     */
+    fun changePoison(delta: Int): Int {
+        val old = poisonCounters
+        poisonCounters = (poisonCounters + delta).coerceAtLeast(0)
+        return poisonCounters - old
+    }
+
+    /**
+     * Change energy by delta, clamped to >= 0.
+     * @return the effective delta applied.
+     */
+    fun changeEnergy(delta: Int): Int {
+        val old = energyCounters
+        energyCounters = (energyCounters + delta).coerceAtLeast(0)
+        return energyCounters - old
+    }
+
+    /**
+     * Change commander damage from [fromPlayerIndex] by delta, clamped to >= 0.
+     * @return the effective delta applied.
+     */
+    fun changeCommanderDamage(fromPlayerIndex: Int, delta: Int): Int {
         val current = commanderDamage.getOrDefault(fromPlayerIndex, 0)
-        commanderDamage[fromPlayerIndex] = current + delta
+        val newVal = (current + delta).coerceAtLeast(0)
+        commanderDamage[fromPlayerIndex] = newVal
+        return newVal - current
     }
 }
 
@@ -59,7 +86,7 @@ class GameState(
     private var _elapsedSeconds = mutableStateOf(0)
     val elapsedSeconds: Int get() = _elapsedSeconds.value
 
-    // Track if game is over (winner declared)
+    /** Whether the game is over (only one player alive). */
     var gameOver by mutableStateOf(false)
         private set
 
@@ -67,14 +94,33 @@ class GameState(
         _elapsedSeconds.value = seconds
     }
 
+    /**
+     * Apply an action. For clamped counters (poison, energy, commander damage),
+     * only records the action if the effective delta is non-zero.
+     * The recorded delta is the effective delta, ensuring undo correctness.
+     */
     fun applyAction(action: GameAction) {
-        when (action) {
-            is GameAction.LifeChange -> players[action.playerIndex].changeLife(action.delta)
-            is GameAction.CommanderDamageChange -> players[action.playerIndex].changeCommanderDamage(action.fromPlayerIndex, action.delta)
-            is GameAction.PoisonChange -> players[action.playerIndex].changePoison(action.delta)
-            is GameAction.EnergyChange -> players[action.playerIndex].changeEnergy(action.delta)
+        val recorded: GameAction? = when (action) {
+            is GameAction.LifeChange -> {
+                players[action.playerIndex].changeLife(action.delta)
+                action
+            }
+            is GameAction.PoisonChange -> {
+                val effective = players[action.playerIndex].changePoison(action.delta)
+                if (effective != 0) action.copy(delta = effective) else null
+            }
+            is GameAction.EnergyChange -> {
+                val effective = players[action.playerIndex].changeEnergy(action.delta)
+                if (effective != 0) action.copy(delta = effective) else null
+            }
+            is GameAction.CommanderDamageChange -> {
+                val effective = players[action.playerIndex].changeCommanderDamage(action.fromPlayerIndex, action.delta)
+                if (effective != 0) action.copy(delta = effective) else null
+            }
         }
-        _actionHistory.add(action)
+        if (recorded != null) {
+            _actionHistory.add(recorded)
+        }
         checkGameOver()
     }
 
@@ -94,17 +140,14 @@ class GameState(
         gameOver = players.count { !it.isDead } <= 1
     }
 
-    // Winner: the one still alive (or null if no winner yet)
+    /** Winner: the one player still alive, or null if no winner yet. */
     val winner: PlayerState?
         get() {
             val alive = players.filter { !it.isDead }
             return if (alive.size == 1) alive[0] else null
         }
 
-    // Life differential: winner's remaining life (or negative = how far they were ahead)
+    /** Life differential: winner's remaining life. */
     val winnerLifeDifferential: Int
-        get() {
-            val w = winner ?: return 0
-            return w.life
-        }
+        get() = winner?.life ?: 0
 }
