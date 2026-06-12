@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Portal Go runs Android 10 (SDK 29). targetSdk 29 is intentional. -->
+    <issue id="ExpiredTargetSdkVersion" severity="informational" />
+
+    <!-- Resource reflection used for dynamic sound loading (matching raw resource names) -->
+    <issue id="DiscouragedApi" severity="informational" />
+
+    <!-- Landscape-only is required for tabletop Portal Go usage -->
+    <issue id="DiscouragedApi" severity="informational" />
+
+    <!-- font_certs.xml contains base64 cert data that triggers false-positive typo warnings -->
+    <issue id="Typos" severity="ignore" />
+
+    <!-- Unused string resources exist because UI was refactored to use hardcoded strings;
+         they can be cleaned up in a future pass -->
+    <issue id="UnusedResources" severity="ignore" />
+</lint>

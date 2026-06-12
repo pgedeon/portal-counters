@@ -67,7 +67,7 @@ class GameStorage(context: Context) {
         val history = getGameHistory().toMutableList()
         history.add(0, record)
         // Keep last 100 games (newest at front)
-        while (history.size > 100) history.removeLast()
+        while (history.size > 100) history.removeAt(history.lastIndex)
         val arr = JSONArray()
         history.forEach { arr.put(recordToJson(it)) }
         prefs.edit().putString("game_history", arr.toString()).apply()

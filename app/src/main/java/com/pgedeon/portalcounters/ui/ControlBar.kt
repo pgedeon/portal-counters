@@ -41,7 +41,7 @@ fun ControlBar(
             val minutes = elapsedSeconds / 60
             val seconds = elapsedSeconds % 60
             Text(
-                text = String.format("⏱ %d:%02d", minutes, seconds),
+                text = String.format(java.util.Locale.ROOT, "⏱ %d:%02d", minutes, seconds),
                 fontSize = 16.sp,
                 color = ContentOnDark,
             )

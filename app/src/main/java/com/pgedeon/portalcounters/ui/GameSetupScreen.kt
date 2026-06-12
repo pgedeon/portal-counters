@@ -330,7 +330,7 @@ private fun StatsDashboard(stats: DashboardStats, recentGames: List<GameRecord>)
             ) {
                 StatChip("⚔ ${stats.totalGames}", "total", Modifier.weight(1f))
                 StatChip("🎯 ${stats.standardGames}S/${stats.commanderGames}C", "modes", Modifier.weight(1f))
-                StatChip("⏱ ${avgMin}:${String.format("%02d", avgSec)}", "avg", Modifier.weight(1f))
+                StatChip("⏱ ${avgMin}:${String.format(java.util.Locale.ROOT, "%02d", avgSec)}", "avg", Modifier.weight(1f))
             }
 
             // === COMPACT LEADERBOARD ===
