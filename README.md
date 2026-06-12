@@ -74,7 +74,24 @@ Portal Counters turns a discontinued Meta Portal Go into a dedicated tabletop co
 
 ## Screenshots
 
-> *Coming soon — pull requests with screenshots welcome!*
+<table>
+  <tr>
+    <td align="center"><b>Game Setup & Stats Dashboard</b></td>
+    <td align="center"><b>2-Player Mid-Game</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/setup-screen.png" width="400" alt="Portal Counters game setup screen showing player stats dashboard, game mode selection, and player configuration on Meta Portal Go"></td>
+    <td><img src="screenshots/game-2-player.png" width="400" alt="Portal Counters 2-player mid-game with animated life totals, damage numbers, and floating counters on Meta Portal Go"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Dice Roller (D6/D20)</b></td>
+    <td align="center"><b>4-Player Commander Game</b></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/dice-roller.png" width="400" alt="Portal Counters built-in dice roller showing D6 result dialog on Meta Portal Go"></td>
+    <td><img src="screenshots/game-4-player-commander.png" width="400" alt="Portal Counters 4-player Commander game with split-screen player zones, commander damage tracking, and poison counters on Meta Portal Go"></td>
+  </tr>
+</table>
 
 ## Installation
 
